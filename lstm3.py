@@ -40,7 +40,7 @@ tagset_size = len(tagset)
 c_embedding_dim = 32
 c_hidden_dim = 32
 w_embedding_dim = 32
-hidden_dim = 64
+hidden_dim = 32
 
 class LSTMModel(nn.Module):
 	def __init__(self, vocab_size, charset_size, tagset_size,
@@ -69,8 +69,11 @@ class LSTMModel(nn.Module):
 		char_lstm, _ = self.lstm1(c_embeds.view(len(c_seq), 1, -1), (self.c_hx, self.c_cx))
 
 		w_embeds = self.word_embedding(w_seq)
-		lstm_out, _ = self.lstm2(torch.cat((char_lstm.view(len(c_seq), -1), w_embeds), 1)\
-		                         .view(len(c_seq)+len(w_seq), 1, -1), (self.hx, self.cx))
+		w_3d_embeds = w_embeds.view(len(w_seq), 1, -1)
+
+		# print(torch.cat((char_lstm, w_3d_embeds), 0))
+
+		lstm_out, _ = self.lstm2(torch.cat((char_lstm, w_3d_embeds), 0), (self.hx, self.cx))
 		tag_space = self.hidden2tag(lstm_out.view(len(c_seq)+len(w_seq), -1))
 		tag_score = F.log_softmax(tag_space, dim=1)
 		return tag_score

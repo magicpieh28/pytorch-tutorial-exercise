@@ -87,9 +87,10 @@ for epoch in range(300):
 		model.zero_grad()
 
 		w_seq = make_tensor(datum, vocab)
-		# c_seq = torch.tensor([charset[data] for data in datum], dtype=torch.long)
-		for data in datum:
-			c_seq = make_tensor(data, charset)
+		c_seq = torch.tensor([charset[i] for data in datum for i in data],
+		                     dtype=torch.long)
+		# for data in datum:
+		# 	c_seq = make_tensor(data, charset)
 		tag_score = model(w_seq, c_seq)
 
 		target = make_tensor(tags, tagset)

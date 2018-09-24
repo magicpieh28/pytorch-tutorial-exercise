@@ -13,10 +13,6 @@ def to_id(datum, dic: dict):
 			dic[data] = len(dic)
 	return dic
 
-def make_tensor(datum, dic: dict):
-	inputs = [dic[data] for data in datum]
-	return torch.tensor(inputs, dtype=torch.long)
-
 vocab = {}
 charset = {}
 tagset = {}
@@ -61,13 +57,7 @@ class LSTMModel(nn.Module):
 		# 5 * 32
 		self.lstm2 = nn.LSTM(w_embedding_dim + c_hidden_dim, hidden_dim)
 		# (32 + 32) * 32
-		# w_embedding_dim + c_hidden_dim은 32 + 32가 되어야 하는데 (그래서 64 에러)
-		# char_lstm + w_embeds 를 0으로 torch.cat()하면 5 + 17이 되기 때문에 여전히 32
-		# 그러면 torch.cat()할 때 0이 아니라 1로 해야 된다는 건가? 32쪽으로 더해야 하나?
-		# 근데 1로는 더할수가 없는데 (5, 17이 안맞아서) 이걸 전치해서 더하면
-		# torch.Size([32, 1, 17]) + torch.Size([32, 1, 5])라는건데 이건 더해서 전치하는 것과
-		# 같지 않나? 결국에는 self.lstm2() 의 사이즈와는 크기의 위치?가 맞지 않아서 또 계산할 수 없음
-		# 근데 튜토리얼 힌트에 w_embed랑 c_rep의 차원을 더한 것을 lstm2 인풋값으로 해야 한다고..
+
 		self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
 
 		self.hx = nn.Parameter(torch.zeros(1, 1, self.hidden_dim))
@@ -78,19 +68,17 @@ class LSTMModel(nn.Module):
 	def forward(self, w_seq, c_seq):
 		print(w_seq, c_seq)
 		c_embeds = self.char_embedding(c_seq)
-		# torch.Size([17, 32])
+		# torch.Size([3, 32])
 		char_lstm, _ = self.lstm1(c_embeds.view(len(c_seq), 1, -1), (self.c_hx, self.c_cx))
-		# torch.Size([17, 1, 32])
+		# torch.Size([3, 1, 32])
+		# lstm을 통하면 모든 히든 값을 concatenate해서 나오기 때문에 seq_len은 무조건
+		# 1이 될 것이랬는데 왜 아직도 3이지? 이러면 여전히 torch.cat() 못하는데.
 
 		w_embeds = self.word_embedding(w_seq)
 		w_3d_embeds = w_embeds.view(len(w_seq), 1, -1)
-		# torch.Size([5, 1, 32])
-
-		# torch.cat((char_lstm, w_3d_embeds), 0)
-		# torch.Size([22, 1, 32])
+		# torch.Size([1, 1, 32])
 
 		lstm_out, _ = self.lstm2(torch.cat((char_lstm, w_3d_embeds), 2), (self.hx, self.cx))
-		# cat()은 됐는데 self.lstm2()이 안돌아간다. 입력 사이즈가 64여야 하는데 32밖에 없단다.
 
 		tag_space = self.hidden2tag(lstm_out.view(len(c_seq)+len(w_seq), -1))
 		tag_score = F.log_softmax(tag_space, dim=1)
@@ -105,14 +93,18 @@ model.train()
 for epoch in range(300):
 	print(f'\n-- {epoch+1} --')
 	for datum, tags in text_data:
-		for word in datum:
-			print(f'-- {word} --')
-			w_seq = make_tensor(word, vocab)
-			c_seq = torch.tensor([charset[char] for char in word], dtype=torch.long)
-
+		for id, word in enumerate(datum):
 			model.zero_grad()
-			target = make_tensor(tags, tagset)
+
+			print(f'-- {word} --')
+			w_seq = torch.tensor([vocab[word]], dtype=torch.long)
+			print(f'w_seq => {w_seq}')
+			c_seq = torch.tensor([charset[char] for char in word], dtype=torch.long)
+			print(f'c_seq => {c_seq}')
+
 			tag_score = model(w_seq, c_seq)
+			target = torch.tensor(tagset[tags[id]], dtype=torch.long)
+			print(f'target => {target}')
 
 			loss = loss_func(tag_score, target)
 			loss.backward()

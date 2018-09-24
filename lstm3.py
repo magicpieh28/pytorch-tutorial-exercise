@@ -70,16 +70,16 @@ class LSTMModel(nn.Module):
 		# 근데 튜토리얼 힌트에 w_embed랑 c_rep의 차원을 더한 것을 lstm2 인풋값으로 해야 한다고..
 		self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
 
-		self.hx = nn.Parameter(torch.zeros(1, 1, hidden_dim))
-		self.cx = nn.Parameter(torch.zeros(1, 1, hidden_dim))
+		self.hx = nn.Parameter(torch.zeros(1, 1, self.hidden_dim))
+		self.cx = nn.Parameter(torch.zeros(1, 1, self.hidden_dim))
 
 		self.dropout = nn.Dropout()
 
 	def forward(self, w_seq, c_seq):
+		print(w_seq, c_seq)
 		c_embeds = self.char_embedding(c_seq)
 		# torch.Size([17, 32])
 		char_lstm, _ = self.lstm1(c_embeds.view(len(c_seq), 1, -1), (self.c_hx, self.c_cx))
-
 		# torch.Size([17, 1, 32])
 
 		w_embeds = self.word_embedding(w_seq)
@@ -89,7 +89,7 @@ class LSTMModel(nn.Module):
 		# torch.cat((char_lstm, w_3d_embeds), 0)
 		# torch.Size([22, 1, 32])
 
-		lstm_out, _ = self.lstm2(torch.cat((char_lstm, w_3d_embeds), 0), (self.hx, self.cx))
+		lstm_out, _ = self.lstm2(torch.cat((char_lstm, w_3d_embeds), 2), (self.hx, self.cx))
 		# cat()은 됐는데 self.lstm2()이 안돌아간다. 입력 사이즈가 64여야 하는데 32밖에 없단다.
 
 		tag_space = self.hidden2tag(lstm_out.view(len(c_seq)+len(w_seq), -1))
@@ -105,19 +105,17 @@ model.train()
 for epoch in range(300):
 	print(f'\n-- {epoch+1} --')
 	for datum, tags in text_data:
-		model.zero_grad()
+		for word in datum:
+			print(f'-- {word} --')
+			w_seq = make_tensor(word, vocab)
+			c_seq = torch.tensor([charset[char] for char in word], dtype=torch.long)
 
-		w_seq = make_tensor(datum, vocab)
-		c_seq = torch.tensor([charset[i] for data in datum for i in data],
-		                     dtype=torch.long)
-		# for data in datum:
-		# 	c_seq = make_tensor(data, charset)
-		tag_score = model(w_seq, c_seq)
+			model.zero_grad()
+			target = make_tensor(tags, tagset)
+			tag_score = model(w_seq, c_seq)
 
-		target = make_tensor(tags, tagset)
-		loss = loss_func(tag_score, target)
-		loss.backward()
-		optimizer.step()
+			loss = loss_func(tag_score, target)
+			loss.backward()
+			optimizer.step()
 
-		print(f'loss => {loss}')
-
+			print(f'loss => {loss}')

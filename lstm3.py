@@ -69,16 +69,17 @@ class LSTMModel(nn.Module):
 		print(w_seq, c_seq)
 		c_embeds = self.char_embedding(c_seq)
 		# torch.Size([3, 32])
-		char_lstm, _ = self.lstm1(c_embeds.view(len(c_seq), 1, -1), (self.c_hx, self.c_cx))
-		# torch.Size([3, 1, 32])
-		# lstm을 통하면 모든 히든 값을 concatenate해서 나오기 때문에 seq_len은 무조건
-		# 1이 될 것이랬는데 왜 아직도 3이지? 이러면 여전히 torch.cat() 못하는데.
+		char_out, (c_hx, c_cx) = self.lstm1(c_embeds.view(len(c_seq), 1, -1),
+		                                   (self.c_hx, self.c_cx))
+		# char_out => torch.Size([3, 1, 32])
 
 		w_embeds = self.word_embedding(w_seq)
 		w_3d_embeds = w_embeds.view(len(w_seq), 1, -1)
 		# torch.Size([1, 1, 32])
 
-		lstm_out, _ = self.lstm2(torch.cat((char_lstm, w_3d_embeds), 2), (self.hx, self.cx))
+		# '그 결과인 최종 hidden state를 c_w로 하면 된다'!!! 아웃풋과 torch.cat()하는 것이 아니었어!
+		lstm_out, _ = self.lstm2(torch.cat((c_hx, w_3d_embeds), 2),
+		                         (self.hx, self.cx))
 
 		tag_space = self.hidden2tag(lstm_out.view(len(c_seq)+len(w_seq), -1))
 		tag_score = F.log_softmax(tag_space, dim=1)
@@ -93,17 +94,17 @@ model.train()
 for epoch in range(300):
 	print(f'\n-- {epoch+1} --')
 	for datum, tags in text_data:
-		for id, word in enumerate(datum):
+		for idx, word in enumerate(datum):
 			model.zero_grad()
 
-			print(f'-- {word} --')
+			print(f'-- {idx} : {word} --')
 			w_seq = torch.tensor([vocab[word]], dtype=torch.long)
 			print(f'w_seq => {w_seq}')
 			c_seq = torch.tensor([charset[char] for char in word], dtype=torch.long)
 			print(f'c_seq => {c_seq}')
 
 			tag_score = model(w_seq, c_seq)
-			target = torch.tensor(tagset[tags[id]], dtype=torch.long)
+			target = torch.tensor(tagset[tags[idx]], dtype=torch.long)
 			print(f'target => {target}')
 
 			loss = loss_func(tag_score, target)

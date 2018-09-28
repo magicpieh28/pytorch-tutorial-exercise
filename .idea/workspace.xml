@@ -13,7 +13,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/pytorch_tutorial_exercise$lstm3.coverage" NAME="lstm3 Coverage Results" MODIFIED="1537886996847" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/pytorch_tutorial_exercise$lstm3.coverage" NAME="lstm3 Coverage Results" MODIFIED="1538116740530" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
@@ -32,8 +32,8 @@
       <file leaf-file-name="lstm3.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/lstm3.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="667">
-              <caret line="80" column="48" selection-start-line="80" selection-start-column="48" selection-end-line="80" selection-end-column="48" />
+            <state relative-caret-position="180">
+              <caret line="41" lean-forward="true" selection-start-line="41" selection-end-line="41" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
               </folding>
@@ -75,7 +75,7 @@
   <component name="NodePackageJsonFileManager">
     <packageJsonPaths />
   </component>
-  <component name="ProjectFrameBounds" fullScreen="true">
+  <component name="ProjectFrameBounds" extendedState="6" fullScreen="true">
     <option name="width" value="1440" />
     <option name="height" value="900" />
   </component>
@@ -226,11 +226,18 @@
       <option name="project" value="LOCAL" />
       <updated>1537804551809</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="error → line 1024, RuntimeError: size mismatch, m1: [4 x 8], m2: [32 x 3] at ~ /THTensorMath.cpp:2070">
+      <created>1537973024267</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1537973024267</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="0" width="1440" height="900" extended-state="0" />
+    <frame x="0" y="0" width="1440" height="900" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info anchor="bottom" id="TODO" order="11" />
@@ -272,7 +279,8 @@
     <MESSAGE value="just consideration(#) of the RuntimeError" />
     <MESSAGE value="error → line 17, KeyError: 'T'" />
     <MESSAGE value="error → line 81, RuntimeError: invalid argument 0: Sizes of tensors must match except in dimension 2. Got 3 and 1 in dimension 0 at ~" />
-    <option name="LAST_COMMIT_MESSAGE" value="error → line 81, RuntimeError: invalid argument 0: Sizes of tensors must match except in dimension 2. Got 3 and 1 in dimension 0 at ~" />
+    <MESSAGE value="error → line 1024, RuntimeError: size mismatch, m1: [4 x 8], m2: [32 x 3] at ~ /THTensorMath.cpp:2070" />
+    <option name="LAST_COMMIT_MESSAGE" value="error → line 1024, RuntimeError: size mismatch, m1: [4 x 8], m2: [32 x 3] at ~ /THTensorMath.cpp:2070" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -315,8 +323,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/lstm3.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="667">
-          <caret line="80" column="48" selection-start-line="80" selection-start-column="48" selection-end-line="80" selection-end-column="48" />
+        <state relative-caret-position="180">
+          <caret line="41" lean-forward="true" selection-start-line="41" selection-end-line="41" />
           <folding>
             <element signature="e#0#12#0" expanded="true" />
           </folding>

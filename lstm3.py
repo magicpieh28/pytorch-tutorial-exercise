@@ -36,7 +36,9 @@ tagset_size = len(tagset)
 c_embedding_dim = 32
 c_hidden_dim = 32
 w_embedding_dim = 32
-hidden_dim = 32
+hidden_dim = 64
+# RuntimeError: size mismatch, m1: [4 x 8], m2: [32 x 3] at
+# RuntimeError: size mismatch, m1: [4 x 16], m2: [64 x 3] at
 
 class LSTMModel(nn.Module):
 	def __init__(self, vocab_size, charset_size, tagset_size,
@@ -80,6 +82,8 @@ class LSTMModel(nn.Module):
 		# '그 결과인 최종 hidden state를 c_w로 하면 된다'!!! 아웃풋과 torch.cat()하는 것이 아니었어!
 		lstm_out, _ = self.lstm2(torch.cat((c_hx, w_3d_embeds), 2),
 		                         (self.hx, self.cx))
+		# torch.cat()은 1, 1, 64가 되어있는데 lstm_out은 1, 1, 32가 되어 있어서
+		# size mismatch 문제가 발생하는건가
 
 		tag_space = self.hidden2tag(lstm_out.view(len(c_seq)+len(w_seq), -1))
 		tag_score = F.log_softmax(tag_space, dim=1)

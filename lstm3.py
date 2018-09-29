@@ -33,13 +33,6 @@ vocab_size = len(vocab)
 charset_size = len(charset)
 tagset_size = len(tagset)
 
-c_embedding_dim = 32
-c_hidden_dim = 32
-w_embedding_dim = 32
-hidden_dim = 64
-# RuntimeError: size mismatch, m1: [4 x 8], m2: [32 x 3] at
-# RuntimeError: size mismatch, m1: [4 x 16], m2: [64 x 3] at
-
 class LSTMModel(nn.Module):
 	def __init__(self, vocab_size, charset_size, tagset_size,
 	             c_embedding_dim, c_hidden_dim, w_embedding_dim, hidden_dim):
@@ -47,50 +40,53 @@ class LSTMModel(nn.Module):
 		self.c_hidden_dim = c_hidden_dim
 		self.hidden_dim = hidden_dim
 
-		self.char_embedding = nn.Embedding(charset_size, c_embedding_dim)
-		# 17 * 32
-		self.lstm1 = nn.LSTM(c_embedding_dim, c_hidden_dim)
-		# 32 * 32
-
 		self.c_hx = nn.Parameter(torch.zeros(1, 1, self.c_hidden_dim))
 		self.c_cx = nn.Parameter(torch.zeros(1, 1, self.c_hidden_dim))
 
+		self.char_embedding = nn.Embedding(charset_size, c_embedding_dim)
+		self.lstm1 = nn.LSTM(c_embedding_dim, c_hidden_dim)
+
 		self.word_embedding = nn.Embedding(vocab_size, w_embedding_dim)
-		# 5 * 32
-		self.lstm2 = nn.LSTM(w_embedding_dim + c_hidden_dim, hidden_dim)
-		# (32 + 32) * 32
-
-		self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
-
 		self.hx = nn.Parameter(torch.zeros(1, 1, self.hidden_dim))
 		self.cx = nn.Parameter(torch.zeros(1, 1, self.hidden_dim))
+		self.lstm2 = nn.LSTM(w_embedding_dim + c_hidden_dim, hidden_dim)
+
+		self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
 
 		self.dropout = nn.Dropout()
 
 	def forward(self, w_seq, c_seq):
-		print(w_seq, c_seq)
-		c_embeds = self.char_embedding(c_seq)
-		# torch.Size([3, 32])
-		char_out, (c_hx, c_cx) = self.lstm1(c_embeds.view(len(c_seq), 1, -1),
-		                                   (self.c_hx, self.c_cx))
-		# char_out => torch.Size([3, 1, 32])
+		print(f'w_seq => {w_seq}')
+		print(f'c_seq => {c_seq}')
 
-		w_embeds = self.word_embedding(w_seq)
-		w_3d_embeds = w_embeds.view(len(w_seq), 1, -1)
-		# torch.Size([1, 1, 32])
+		sentence_vec = []
+		for word, char in zip(w_seq, c_seq):
+			print(f'word => {word}')
+			print(f'char => {char}')
 
-		# '그 결과인 최종 hidden state를 c_w로 하면 된다'!!! 아웃풋과 torch.cat()하는 것이 아니었어!
-		lstm_out, _ = self.lstm2(torch.cat((c_hx, w_3d_embeds), 2),
-		                         (self.hx, self.cx))
-		# torch.cat()은 1, 1, 64가 되어있는데 lstm_out은 1, 1, 32가 되어 있어서
-		# size mismatch 문제가 발생하는건가
+			char_vec = self.char_embedding(char)
+			char_vec = char_vec.view(char_vec.size(0), 1, char_vec.size(1))
+			
+			_, (c_hx, _) = self.lstm1(char_vec, (self.c_hx, self.c_cx))
+			char_rep = c_hx[-1, ...]
 
-		tag_space = self.hidden2tag(lstm_out.view(len(c_seq)+len(w_seq), -1))
+			word_vec = self.word_embedding(word)
+
+			vector = torch.cat((char_rep, word_vec), dim=1)
+			sentence_vec.append(vector)
+
+		sentence_vec = torch.stack(sentence_vec, dim=0)
+
+		lstm_out, _ = self.lstm2(sentence_vec, (self.hx, self.cx))
+		lstm_out = lstm_out.view(lstm_out.size(0), -1)
+
+		tag_space = self.hidden2tag(lstm_out)
 		tag_score = F.log_softmax(tag_space, dim=1)
 		return tag_score
 
-model = LSTMModel(vocab_size, charset_size, tagset_size, c_embedding_dim,
-                  c_hidden_dim, w_embedding_dim, hidden_dim)
+model = LSTMModel(vocab_size, charset_size, tagset_size,
+                  c_embedding_dim=32, c_hidden_dim=32,
+                  w_embedding_dim=32, hidden_dim=32)
 optimizer = optim.SGD(model.parameters(), lr=0.05)
 loss_func = nn.NLLLoss()
 
@@ -98,21 +94,17 @@ model.train()
 for epoch in range(300):
 	print(f'\n-- {epoch+1} --')
 	for datum, tags in text_data:
-		for idx, word in enumerate(datum):
-			model.zero_grad()
+		model.zero_grad()
 
-			print(f'-- {idx} : {word} --')
-			w_seq = torch.tensor([vocab[word]], dtype=torch.long)
-			print(f'w_seq => {w_seq}')
-			c_seq = torch.tensor([charset[char] for char in word], dtype=torch.long)
-			print(f'c_seq => {c_seq}')
+		w_seq = [torch.tensor([vocab[data]], dtype=torch.long) for data in datum]
+		c_seq = [torch.tensor([charset[d] for d in data], dtype=torch.long)\
+		         for data in datum]
 
-			tag_score = model(w_seq, c_seq)
-			target = torch.tensor(tagset[tags[idx]], dtype=torch.long)
-			print(f'target => {target}')
+		tag_score = model(w_seq, c_seq)
+		target = torch.tensor([tagset[tag] for tag in tags], dtype=torch.long)
 
-			loss = loss_func(tag_score, target)
-			loss.backward()
-			optimizer.step()
+		loss = loss_func(tag_score, target)
+		loss.backward()
+		optimizer.step()
 
-			print(f'loss => {loss}')
+		print(f'loss => {loss}')
